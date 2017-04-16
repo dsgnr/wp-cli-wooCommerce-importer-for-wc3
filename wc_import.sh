@@ -1,16 +1,30 @@
 #!/bin/bash
 echo -e "Grabbing your products now!"
-while IFS='|' read -r images product_title short_description category weight regular_price stock_qty manage_stock
+
+OLDIFS=$IFS
+while IFS='|' read -r sku images product_title short_description cats weight regular_price stock_qty manage_stock length height width
 do
-wp media import "${images}" --featured_image  --post_id=$(wp wc product create --name="${product_title}" --short_description='${short_description}' --categories='${category}' --weight="${weight}" --regular_price="${regular_price}"  --stock_quantity="${stock_qty}" --manage_stock="${manage_stock}" --allow-root --user=danielhand | awk '{print $4}') --user=danielhand --allow-root
-done < product-new.txt
+DIMS=({\"length\":\"${length}\"\,\"width\":\"${width}\"\,\"height\":\"${height}\"})
+echo ${DIMS[@]}
 
 
+IFS=", "
+read -a CATEGORIES <<<$cats
+#reset IFS
+IFS=$OLDIFS
+CATS=([{\"id\":${CATEGORIES[0]}},{\"id\":${CATEGORIES[1]}}])
+echo ${CATS[@]}
 
-###### NOTES ######
+echo SKU = ${sku}
+echo Image = ${images}
+echo Title = ${product_title}
+echo Desc = ${short_description}
+echo Weight = ${weight}
+echo Price = ${regular_price}
+echo Stock Qty = ${stock_qty}
+echo Manage Stock = ${manage_stock}
 
-# Dimensions can be imported by using --dimensions='{"length":"100","height":"100","width":"100"}' however, this causes issues when pulling the values from the CSV as variables need to be enclosed in " ". Need to try and change the way the values are displayed from the CSV.
 
-# STILL NEED TO DO
-# Gallery images
-# Categories
+wp media import "${images}" --featured_image  --post_id=$(wp wc product create --sku="${sku}" --name="${product_title}" --short_description="${short_description}" --weight="${weight}" --regular_price="${regular_price}"  --stock_quantity="${stock_qty}" --manage_stock="${manage_stock}" --dimensions=${DIMS[@]} --categories=${CATS[@]} --allow-root --user=siteadmin | awk '{print $4}') --user=siteadmin --allow-root
+IFS=$OLDIFS
+done < product-new-final.txt
